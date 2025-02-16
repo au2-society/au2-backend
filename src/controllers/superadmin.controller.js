@@ -4,12 +4,21 @@ import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { Admin } from "../models/admin.model.js";
 
 const registerAdmin = asyncHandler(async (req, res) => {
+  const isSuperAdmin = req.admin.role === "superadmin";
+
+  if (!isSuperAdmin) {
+    throw new ApiError(
+      403,
+      "You are not authorized to create an admin account"
+    );
+  }
+
   const { email } = req.body;
 
   const isValidEmail = validEmail(email);
 
   if (!email || !isValidEmail) {
-    throw new ApiError(412, "Please enter a valid email address");
+    throw new ApiError(422, "Please enter a valid email address");
   }
 
   const existedAdmin = await Admin.findOne({ email });
@@ -19,10 +28,14 @@ const registerAdmin = asyncHandler(async (req, res) => {
   }
 
   const defaultPassword = crypto.randomBytes(4).toString("hex");
+
   const username = extractUsername(email);
 
   const admin = await Admin.create({
     username: username.toLowerCase(),
+    fullName: "",
+    avatar: "",
+    coverImage: "",
     email,
     password: defaultPassword,
   });

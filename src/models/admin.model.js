@@ -6,6 +6,7 @@ const adminSchema = new Schema(
   {
     fullName: {
       type: String,
+      trim: true,
     },
     username: {
       type: String,
@@ -24,6 +25,8 @@ const adminSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
       validate: {
         validator: function (value) {
           // Validates emails like: random.e15358@cumail.in
@@ -35,6 +38,26 @@ const adminSchema = new Schema(
     role: {
       type: String,
       default: "admin",
+      enum: ["admin", "superadmin"],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    lastLogin: {
+      type: Date,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
     },
     events: [
       {
@@ -55,7 +78,7 @@ const adminSchema = new Schema(
   }
 );
 
-// Hash password before saving the user document
+// Hash password before saving the admin document.
 adminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -66,12 +89,12 @@ adminSchema.pre("save", async function (next) {
   }
 });
 
-// Method to compare entered password with stored hashed password
+// Instance method to compare entered password with stored hashed password.
 adminSchema.methods.isPasswordMatched = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Generate JWT access token
+// Generate JWT access token.
 adminSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -88,7 +111,7 @@ adminSchema.methods.generateAccessToken = function () {
   );
 };
 
-// Generate JWT refresh token
+// Generate JWT refresh token.
 adminSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     { id: this._id.toString() },
@@ -97,6 +120,18 @@ adminSchema.methods.generateRefreshToken = function () {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
+};
+
+// Helper method to activate an admin.
+adminSchema.methods.activate = function () {
+  this.isActive = true;
+  return this.save();
+};
+
+// Helper method to deactivate an admin.
+adminSchema.methods.deactivate = function () {
+  this.isActive = false;
+  return this.save();
 };
 
 export const Admin = mongoose.model("Admin", adminSchema);

@@ -68,10 +68,12 @@ app.use(
 );
 
 // Routes import
-import adminRouter from "./routes/superadmin.route.js";
+import superadminRouter from "./routes/superadmin.route.js";
+import adminRouter from "./routes/admin.route.js";
 
 // Router declare
-app.use("/api/v1/super", adminRouter);
+app.use("/api/v1/super", superadminRouter);
+app.use("/api/v1/admin", adminRouter);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
