@@ -4,16 +4,24 @@ import bcrypt from "bcryptjs";
 
 const adminSchema = new Schema(
   {
-    fullName: {
-      type: String,
-      trim: true,
-    },
     username: {
       type: String,
       unique: true,
       lowercase: true,
       trim: true,
       index: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    bio: {
+      type: String,
+      trim: true,
     },
     avatar: {
       type: String,
@@ -59,12 +67,6 @@ const adminSchema = new Schema(
       type: Number,
       default: 0,
     },
-    events: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Event",
-      },
-    ],
     password: {
       type: String,
       required: true,
@@ -77,6 +79,17 @@ const adminSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Virtual populate: get all events where this admin is the owner
+adminSchema.virtual("events", {
+  ref: "Event",
+  localField: "_id",
+  foreignField: "owner",
+});
+
+// Ensure virtuals are included when converting to JSON or Object
+adminSchema.set("toObject", { virtuals: true });
+adminSchema.set("toJSON", { virtuals: true });
 
 // Hash password before saving the admin document.
 adminSchema.pre("save", async function (next) {

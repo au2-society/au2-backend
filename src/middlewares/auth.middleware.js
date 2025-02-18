@@ -33,3 +33,10 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
     throw new ApiError(401, error?.message || "Invalid access token");
   }
 });
+
+export const requireSuperAdmin = (req, _, next) => {
+  if (req.admin && req.admin.role === "superadmin") {
+    return next();
+  }
+  throw new ApiError(403, "Access denied. Super admin only.");
+};

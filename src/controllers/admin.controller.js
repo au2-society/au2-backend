@@ -3,6 +3,7 @@ import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { Admin } from "../models/admin.model.js";
 import { COOKIE_OPTIONS } from "../lib/constants.js";
 import { generateAccessAndRefreshTokens } from "../lib/token.js";
+import { uploadOnCloudinary } from "../lib/cloudinary.js";
 import jwt from "jsonwebtoken";
 
 const loginAdmin = asyncHandler(async (req, res) => {
@@ -18,6 +19,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
   if (admin.isDeleted) throw new ApiError(403, "Admin is deleted");
 
   const passwordMatched = await admin.isPasswordMatched(password);
+
   if (!passwordMatched) {
     admin.failedLoginAttempts += 1;
     await admin.save();
@@ -109,4 +111,116 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { loginAdmin, logoutAdmin, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const admin = await Admin.findById(req.admin?.id);
+  const isPasswordCorrect = await admin.isPasswordMatched(oldPassword);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, "Incorrect password");
+  }
+
+  admin.password = newPassword;
+  await admin.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentAdmin = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, req.admin, "Current Admin fetched successfully")
+    );
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, phoneNumber, bio } = req.body;
+
+  const updateFields = {};
+  if (fullName) updateFields.fullName = fullName;
+  if (phoneNumber) updateFields.phoneNumber = phoneNumber;
+  if (bio) updateFields.bio = bio;
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin?.id,
+    { $set: updateFields },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, admin, "Account details updated successfully"));
+});
+
+const updateAdminAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(422, "Avatar upload failed");
+  }
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar.url) {
+    throw new ApiError(422, "Error uploading avatar");
+  }
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin?.id,
+    { $set: { avatar: avatar.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, admin, "Avatar updated successfully"));
+});
+
+const updateAdminCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = req.file?.path;
+
+  if (!coverImageLocalPath) {
+    throw new ApiError(422, "Cover image upload failed");
+  }
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+  if (!coverImage.url) {
+    throw new ApiError(422, "Error uploading cover image");
+  }
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin?.id,
+    { $set: { coverImage: coverImage.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, admin, "Cover image updated successfully"));
+});
+
+export {
+  loginAdmin,
+  logoutAdmin,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentAdmin,
+  updateAccountDetails,
+  updateAdminAvatar,
+  updateAdminCoverImage,
+};
