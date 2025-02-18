@@ -1,9 +1,15 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { createEvent, updateEvent } from "../controllers/event.controller.js";
+import {
+  createEvent,
+  getAllEvents,
+  updateEvent,
+} from "../controllers/event.controller.js";
 
 const router = Router();
+
+router.route("/all-events").get(getAllEvents);
 
 router
   .route("/create-event")
@@ -20,5 +26,7 @@ router
     upload.fields([{ name: "photo", maxCount: 1 }]),
     updateEvent
   );
+
+router.route("/delete-event/:id").delete(verifyJWT);
 
 export default router;

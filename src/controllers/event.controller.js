@@ -2,6 +2,18 @@ import Event from "../models/event.model.js";
 import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { uploadOnCloudinary } from "../lib/cloudinary.js";
 
+const getAllEvents = asyncHandler(async (req, res) => {
+  const events = await Event.find().lean();
+
+  if (!events.length) {
+    throw new ApiError(404, "No events found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, events, "Events fetched successfully"));
+});
+
 const createEvent = asyncHandler(async (req, res) => {
   const {
     heading,
@@ -95,4 +107,4 @@ const updateEvent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, event, "Event updated successfully"));
 });
 
-export { createEvent, updateEvent };
+export { createEvent, updateEvent, getAllEvents };
