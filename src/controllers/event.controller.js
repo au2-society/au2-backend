@@ -170,4 +170,4 @@ const getEvent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, event, "Event fetched successfully"));
 });
 
-export { createEvent, updateEvent, getAllEvents, deleteEvent, getEvent };
+export { createEvent, updateEvent, getAllEvents, deleteEvent, getEvent, registerEvent };
