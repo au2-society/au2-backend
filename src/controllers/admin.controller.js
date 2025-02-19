@@ -45,7 +45,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { user: loggedInAdmin, accessToken, refreshToken },
+        { admin: loggedInAdmin, accessToken, refreshToken },
         "Admin logged in successfully"
       )
     );

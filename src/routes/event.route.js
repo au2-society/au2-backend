@@ -3,13 +3,18 @@ import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
   createEvent,
+  deleteEvent,
   getAllEvents,
+  getEvent,
+  registerEvent,
   updateEvent,
 } from "../controllers/event.controller.js";
 
 const router = Router();
 
 router.route("/all-events").get(getAllEvents);
+router.route("/event/:id").get(getEvent);
+router.route("/register").post(upload.none(), registerEvent);
 
 router
   .route("/create-event")
@@ -27,6 +32,6 @@ router
     updateEvent
   );
 
-router.route("/delete-event/:id").delete(verifyJWT);
+router.route("/delete-event/:id").delete(verifyJWT, deleteEvent);
 
 export default router;

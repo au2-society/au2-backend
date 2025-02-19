@@ -3,15 +3,45 @@ import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { uploadOnCloudinary } from "../lib/cloudinary.js";
 
 const getAllEvents = asyncHandler(async (req, res) => {
-  const events = await Event.find().lean();
-
-  if (!events.length) {
-    throw new ApiError(404, "No events found");
-  }
+  const events = await Event.find()
+    .lean()
+    .populate("owner", "fullName phoneNumber email")
+    .exec();
 
   return res
     .status(200)
-    .json(new ApiResponse(200, events, "Events fetched successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        events,
+        events.length ? "Events fetched successfully" : "No events available"
+      )
+    );
+});
+
+const registerEvent = asyncHandler(async (req, res) => {
+  const { eventId } = req.body;
+
+  if (!eventId) {
+    throw new ApiError(422, "Event ID is required");
+  }
+
+  const event = await Event.findById(eventId);
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  if (event.owner.toString() === req.admin._id.toString()) {
+    throw new ApiError(403, "You cannot register for your own event");
+  }
+
+  event.participants.push(req.admin._id);
+  await event.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, event, "Event registered successfully"));
 });
 
 const createEvent = asyncHandler(async (req, res) => {
@@ -107,4 +137,37 @@ const updateEvent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, event, "Event updated successfully"));
 });
 
-export { createEvent, updateEvent, getAllEvents };
+const deleteEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  if (event.owner.toString() !== req.admin._id.toString()) {
+    throw new ApiError(
+      403,
+      "Unauthorized: You can only delete your own events"
+    );
+  }
+
+  await Event.findByIdAndDelete(req.params.id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Event deleted successfully"));
+});
+
+const getEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findById(req.params.id).lean();
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, event, "Event fetched successfully"));
+});
+
+export { createEvent, updateEvent, getAllEvents, deleteEvent, getEvent };

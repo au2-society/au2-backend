@@ -53,7 +53,7 @@ const eventSchema = new Schema(
       type: String,
       required: [true, "Society is required"],
       enum: {
-        values: ["Tech Path Finder", "Minded Peers", "Testing Society"],
+        values: ["TechPath Finder", "Minded Peers"],
         message: "Society must be either 'Tech Path Finder' or 'Minded Peers'",
       },
     },
