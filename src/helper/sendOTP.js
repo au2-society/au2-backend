@@ -28,7 +28,7 @@ const sendOTP = async (email, otp) => {
                 </div>
                 <p style="font-size: 16px; margin-bottom: 20px;">This code will expire in 10 minutes for security reasons. If you didn't request this code, please ignore this email.</p>
                 <p style="font-size: 16px; margin-bottom: 20px;">If you have any questions or concerns, please don't hesitate to contact our support team.</p>
-                <p style="font-size: 16px; margin-bottom: 20px;">Best regards,<br>Cvents Team</p>
+                <p style="font-size: 16px; margin-bottom: 20px;">Best regards,<br>The Cvents Team</p>
               </td>
             </tr>
           </table>

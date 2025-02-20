@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
 import { extractUsername, validEmail } from "../helper/validators.js";
 import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { Admin } from "../models/admin.model.js";
+import sendWelcomeEmail from "../helper/sendRegisterAdminEmail.js";
 
 const registerAdmin = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -41,7 +41,11 @@ const registerAdmin = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while creating admin");
   }
 
-  // TODO: Send the defaultPassword to the admin via email
+  try {
+    await sendWelcomeEmail(email, username, defaultPassword);
+  } catch (error) {
+    console.error("Failed to send welcome email:", error);
+  }
 
   return res
     .status(201)
