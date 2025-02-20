@@ -59,8 +59,8 @@ const logoutAdmin = asyncHandler(async (req, res) => {
   );
 
   return res
-    .clearCookie("accessToken", COOKIE_OPTIONS)
-    .clearCookie("refreshToken", COOKIE_OPTIONS)
+    .clearCookie("accessToken", { ...COOKIE_OPTIONS, maxAge: 0 })
+    .clearCookie("refreshToken", { ...COOKIE_OPTIONS, maxAge: 0 })
     .status(200)
     .json(new ApiResponse(200, {}, "Admin logged out successfully"));
 });
@@ -130,6 +130,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentAdmin = asyncHandler(async (req, res) => {
+  console.log("Get current admin", req.admin);
   return res
     .status(200)
     .json(

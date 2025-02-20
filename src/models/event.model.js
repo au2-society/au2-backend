@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 const eventSchema = new Schema(
   {
@@ -46,14 +46,13 @@ const eventSchema = new Schema(
     },
     slug: {
       type: String,
-      default: () => uuidv4(),
       unique: true,
     },
     society: {
       type: String,
       required: [true, "Society is required"],
       enum: {
-        values: ["TechPath Finder", "Minded Peers"],
+        values: ["Tech Path Finder", "Minded Peers"],
         message: "Society must be either 'Tech Path Finder' or 'Minded Peers'",
       },
     },
@@ -70,6 +69,11 @@ const eventSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    registeredUsers: {
+      type: [Schema.Types.ObjectId],
+      ref: "Participant",
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -77,5 +81,12 @@ const eventSchema = new Schema(
 );
 
 eventSchema.plugin(mongooseAggregatePaginate);
+
+eventSchema.pre("save", function (next) {
+  if (!this.slug) {
+    this.slug = uuidv4();
+  }
+  next();
+});
 
 export default mongoose.model("Event", eventSchema);

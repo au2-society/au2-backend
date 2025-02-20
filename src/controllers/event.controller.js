@@ -1,6 +1,9 @@
 import Event from "../models/event.model.js";
 import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { uploadOnCloudinary } from "../lib/cloudinary.js";
+import redisClient from "../lib/redis.js";
+import sendOTP from "../helper/sendOTP.js";
+import { Participant } from "../models/participant.model.js";
 
 const getAllEvents = asyncHandler(async (req, res) => {
   const events = await Event.find()
@@ -19,25 +22,78 @@ const getAllEvents = asyncHandler(async (req, res) => {
     );
 });
 
-const registerEvent = asyncHandler(async (req, res) => {
-  const { eventId } = req.body;
+const initiateRegistration = asyncHandler(async (req, res) => {
+  const { email, uid } = req.body;
+  if (!email || !uid) {
+    throw new ApiError(422, "Email and UID are required");
+  }
 
-  if (!eventId) {
-    throw new ApiError(422, "Event ID is required");
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  await redisClient.setEx(`otp:${email}`, 300, otp);
+  await sendOTP(email, otp);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "OTP sent successfully"));
+});
+
+const registerEvent = asyncHandler(async (req, res) => {
+  const {
+    eventId,
+    name,
+    uid,
+    sectionGroup,
+    email,
+    phoneNumber,
+    academicUnit,
+    academicYear,
+    otp,
+  } = req.body;
+
+  if (
+    !otp ||
+    !eventId ||
+    !name ||
+    !uid ||
+    !sectionGroup ||
+    !email ||
+    !phoneNumber ||
+    !academicUnit ||
+    !academicYear
+  ) {
+    throw new ApiError(422, "Missing required fields");
+  }
+
+  const storedOTP = await redisClient.get(`otp:${email}`);
+  if (storedOTP !== otp) {
+    throw new ApiError(401, "Invalid or expired OTP");
   }
 
   const event = await Event.findById(eventId);
-
   if (!event) {
     throw new ApiError(404, "Event not found");
   }
 
-  if (event.owner.toString() === req.admin._id.toString()) {
-    throw new ApiError(403, "You cannot register for your own event");
+  let participant = await Participant.findOne({ uid });
+  if (!participant) {
+    participant = await Participant.create({
+      name,
+      uid,
+      email,
+      sectionGroup,
+      phoneNumber,
+      academicUnit,
+      academicYear,
+    });
   }
 
-  event.participants.push(req.admin._id);
+  if (event.registeredUsers.includes(participant._id)) {
+    throw new ApiError(400, "Already registered for this event");
+  }
+
+  event.registeredUsers.push(participant._id);
   await event.save();
+  await redisClient.del(`otp:${email}`); 
 
   return res
     .status(200)
@@ -170,4 +226,12 @@ const getEvent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, event, "Event fetched successfully"));
 });
 
-export { createEvent, updateEvent, getAllEvents, deleteEvent, getEvent, registerEvent };
+export {
+  createEvent,
+  updateEvent,
+  getAllEvents,
+  deleteEvent,
+  getEvent,
+  registerEvent,
+  initiateRegistration,
+};

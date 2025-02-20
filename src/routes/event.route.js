@@ -6,6 +6,7 @@ import {
   deleteEvent,
   getAllEvents,
   getEvent,
+  initiateRegistration,
   registerEvent,
   updateEvent,
 } from "../controllers/event.controller.js";
@@ -14,7 +15,8 @@ const router = Router();
 
 router.route("/all-events").get(getAllEvents);
 router.route("/event/:id").get(getEvent);
-router.route("/register").post(upload.none(), registerEvent);
+router.route("/register/initiate").post(upload.none(), initiateRegistration);
+router.route("/register/verify").post(upload.none(), registerEvent);
 
 router
   .route("/create-event")
