@@ -2,6 +2,7 @@ import Event from "../models/event.model.js";
 import { ApiError, ApiResponse, asyncHandler } from "../lib/utils.js";
 import { uploadOnCloudinary } from "../lib/cloudinary.js";
 import redisClient from "../lib/redis.js";
+import otpGenerator from "otp-generator";
 import sendOTP from "../helper/sendOTP.js";
 import { Participant } from "../models/participant.model.js";
 
@@ -22,22 +23,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
     );
 });
 
-const initiateRegistration = asyncHandler(async (req, res) => {
-  const { email, uid } = req.body;
-  if (!email || !uid) {
-    throw new ApiError(422, "Email and UID are required");
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  await redisClient.setEx(`otp:${email}`, 300, otp);
-  await sendOTP(email, otp);
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "OTP sent successfully"));
-});
-
-const registerEvent = asyncHandler(async (req, res) => {
+const initiateEventRegistration = asyncHandler(async (req, res) => {
   const {
     eventId,
     name,
@@ -47,11 +33,9 @@ const registerEvent = asyncHandler(async (req, res) => {
     phoneNumber,
     academicUnit,
     academicYear,
-    otp,
   } = req.body;
 
   if (
-    !otp ||
     !eventId ||
     !name ||
     !uid ||
@@ -64,9 +48,73 @@ const registerEvent = asyncHandler(async (req, res) => {
     throw new ApiError(422, "Missing required fields");
   }
 
-  const storedOTP = await redisClient.get(`otp:${email}`);
-  if (storedOTP !== otp) {
-    throw new ApiError(401, "Invalid or expired OTP");
+  const event = await Event.findById(eventId);
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  const existingParticipant = await Participant.findOne({ uid });
+  if (
+    existingParticipant &&
+    event.registeredUsers.includes(existingParticipant._id)
+  ) {
+    throw new ApiError(400, "You have already registered for this event");
+  }
+
+  const otp = otpGenerator.generate(6, {
+    digits: true,
+    upperCaseAlphabets: false,
+    lowerCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  console.log("OTP:", otp);
+
+  const redisKey = `eventRegistration:${eventId}:${email}`;
+
+  const registrationData = {
+    eventId,
+    name,
+    uid,
+    sectionGroup,
+    email,
+    phoneNumber,
+    academicUnit,
+    academicYear,
+    otp,
+  };
+  await redisClient.setEx(redisKey, 600, JSON.stringify(registrationData));
+
+  const otpSent = await sendOTP(email, otp);
+console.log("OTP sent:", otpSent);
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "OTP sent successfully. Please verify to complete registration."
+      )
+    );
+});
+
+const verifyEventRegistration = asyncHandler(async (req, res) => {
+  const { eventId, email, otp } = req.body;
+
+  if (!eventId || !email || !otp) {
+    throw new ApiError(422, "Missing required fields");
+  }
+
+  const redisKey = `eventRegistration:${eventId}:${email}`;
+  const data = await redisClient.get(redisKey);
+  if (!data) {
+    throw new ApiError(400, "OTP expired or registration data not found");
+  }
+
+  const registrationData = JSON.parse(data);
+
+  if (registrationData.otp !== otp) {
+    throw new ApiError(400, "Invalid OTP");
   }
 
   const event = await Event.findById(eventId);
@@ -74,26 +122,27 @@ const registerEvent = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Event not found");
   }
 
-  let participant = await Participant.findOne({ uid });
+  let participant = await Participant.findOne({ uid: registrationData.uid });
   if (!participant) {
     participant = await Participant.create({
-      name,
-      uid,
-      email,
-      sectionGroup,
-      phoneNumber,
-      academicUnit,
-      academicYear,
+      name: registrationData.name,
+      uid: registrationData.uid,
+      email: registrationData.email,
+      sectionGroup: registrationData.sectionGroup,
+      phoneNumber: registrationData.phoneNumber,
+      academicUnit: registrationData.academicUnit,
+      academicYear: registrationData.academicYear,
     });
   }
 
   if (event.registeredUsers.includes(participant._id)) {
-    throw new ApiError(400, "Already registered for this event");
+    throw new ApiError(400, "You have already registered for this event");
   }
 
   event.registeredUsers.push(participant._id);
   await event.save();
-  await redisClient.del(`otp:${email}`); 
+
+  await redisClient.del(redisKey);
 
   return res
     .status(200)
@@ -232,6 +281,6 @@ export {
   getAllEvents,
   deleteEvent,
   getEvent,
-  registerEvent,
-  initiateRegistration,
+  initiateEventRegistration,
+  verifyEventRegistration,
 };

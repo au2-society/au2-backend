@@ -6,17 +6,34 @@ import {
   deleteEvent,
   getAllEvents,
   getEvent,
-  initiateRegistration,
-  registerEvent,
+  initiateEventRegistration,
+  verifyEventRegistration,
   updateEvent,
 } from "../controllers/event.controller.js";
+import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import redisClient from "../lib/redis.js";
+
 
 const router = Router();
 
+const otpRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
+  message: "Too many OTP requests, please try again later.",
+});
+
 router.route("/all-events").get(getAllEvents);
 router.route("/event/:id").get(getEvent);
-router.route("/register/initiate").post(upload.none(), initiateRegistration);
-router.route("/register/verify").post(upload.none(), registerEvent);
+router
+  .route("/register/initiate")
+  .post(upload.none(), otpRateLimiter, initiateEventRegistration);
+router.route("/register/verify").post(upload.none(), verifyEventRegistration);
 
 router
   .route("/create-event")
