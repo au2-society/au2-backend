@@ -43,7 +43,7 @@ const participantSchema = new Schema(
       default: "",
     },
     academicYear: {
-      type: Number,
+      type: String,
       default: null,
     },
   },
