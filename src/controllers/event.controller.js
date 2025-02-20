@@ -68,8 +68,6 @@ const initiateEventRegistration = asyncHandler(async (req, res) => {
     specialChars: false,
   });
 
-  console.log("OTP:", otp);
-
   const redisKey = `eventRegistration:${eventId}:${email}`;
 
   const registrationData = {
@@ -85,8 +83,8 @@ const initiateEventRegistration = asyncHandler(async (req, res) => {
   };
   await redisClient.setEx(redisKey, 600, JSON.stringify(registrationData));
 
-  const otpSent = await sendOTP(email, otp);
-console.log("OTP sent:", otpSent);
+  await sendOTP(email, otp);
+
   return res
     .status(200)
     .json(

@@ -15,7 +15,7 @@ const redisClient = createClient({
         return new Error("Exceeded maximum retry attempts.");
       }
       console.warn(
-        `\n⚠️ Redis connection failed. Retrying in ${retries * 1000}ms...`
+        `\n⚠️  Redis connection failed. Retrying in ${retries * 1000}ms...`
       );
       return retries * 1000;
     },
