@@ -25,20 +25,27 @@ if (NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
-const allowedOrigins = CORS_ORIGIN ? CORS_ORIGIN.split(",") : [];
+// const allowedOrigins = CORS_ORIGIN ? CORS_ORIGIN.split(",") : [];
+
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       if (!origin) return callback(null, true);
+//       if (allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       } else {
+//         const msg =
+//           "The CORS policy for this site does not allow access from the specified Origin.";
+//         return callback(new Error(msg), false);
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        const msg =
-          "The CORS policy for this site does not allow access from the specified Origin.";
-        return callback(new Error(msg), false);
-      }
-    },
+    origin: true,
     credentials: true,
   })
 );
