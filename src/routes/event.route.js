@@ -9,11 +9,11 @@ import {
   initiateEventRegistration,
   verifyEventRegistration,
   updateEvent,
+  resendEventOTP,
 } from "../controllers/event.controller.js";
 import rateLimit from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import redisClient from "../lib/redis.js";
-
 
 const router = Router();
 
@@ -33,6 +33,9 @@ router.route("/event/:id").get(getEvent);
 router
   .route("/register/initiate")
   .post(upload.none(), otpRateLimiter, initiateEventRegistration);
+router
+  .route("/register/resend")
+  .post(upload.none(), otpRateLimiter, resendEventOTP);
 router.route("/register/verify").post(upload.none(), verifyEventRegistration);
 
 router

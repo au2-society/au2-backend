@@ -40,7 +40,6 @@ const sendWelcomeEmail = async (email, username, defaultPassword) => {
         </html>
       `,
     });
-    console.log("Welcome email sent successfully");
   } catch (error) {
     console.error("Error sending welcome email:", error);
     throw error;

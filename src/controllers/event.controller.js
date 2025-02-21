@@ -9,7 +9,7 @@ import { Participant } from "../models/participant.model.js";
 const getAllEvents = asyncHandler(async (req, res) => {
   const events = await Event.find()
     .lean()
-    .populate("owner", "fullName phoneNumber email")
+    .populate("owner", "fullName phoneNumber email avatar")
     .exec();
 
   return res
@@ -147,6 +147,46 @@ const verifyEventRegistration = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, event, "Event registered successfully"));
 });
 
+const resendEventOTP = asyncHandler(async (req, res) => {
+  const { eventId, email } = req.body;
+
+  if (!eventId || !email) {
+    throw new ApiError(422, "Missing required fields");
+  }
+
+  const redisKey = `eventRegistration:${eventId}:${email}`;
+
+  const data = await redisClient.get(redisKey);
+  if (!data) {
+    throw new ApiError(400, "OTP expired or registration data not found");
+  }
+
+  const registrationData = JSON.parse(data);
+
+  const newOtp = otpGenerator.generate(6, {
+    digits: true,
+    upperCaseAlphabets: false,
+    lowerCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  registrationData.otp = newOtp;
+
+  await redisClient.setEx(redisKey, 600, JSON.stringify(registrationData));
+
+  await sendOTP(email, newOtp);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "OTP resent successfully. Please verify to complete registration."
+      )
+    );
+});
+
 const createEvent = asyncHandler(async (req, res) => {
   const {
     heading,
@@ -281,4 +321,5 @@ export {
   getEvent,
   initiateEventRegistration,
   verifyEventRegistration,
+  resendEventOTP,
 };
