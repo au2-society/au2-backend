@@ -29,7 +29,7 @@ const otpRateLimiter = rateLimit({
 });
 
 router.route("/all-events").get(getAllEvents);
-router.route("/event/:id").get(getEvent);
+router.route("/single-event/:slug").get(getEvent);
 router
   .route("/register/initiate")
   .post(upload.none(), otpRateLimiter, initiateEventRegistration);

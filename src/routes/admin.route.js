@@ -11,6 +11,7 @@ import {
   updateAdminCoverImage,
 } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { getAdminEvents } from "../controllers/event.controller.js";
 
 const router = Router();
 
@@ -32,5 +33,10 @@ router
 router
   .route("/update-avatar")
   .post(verifyJWT, upload.single("avatar"), updateAdminAvatar);
+router.route("/get-admin-events").get(verifyJWT, upload.none(), getAdminEvents);
 
 export default router;
+// Add Event routes that require admin access
+// router.route("/create-event").post(verifyJWT, upload.none(), createEvent);
+// router.route("/update-event/:id").post(verifyJWT, upload.none(), updateEvent);
+// router.route("/delete-event/:id").post(verifyJWT, upload.none(), deleteEvent);

@@ -6,6 +6,8 @@ import { generateAccessAndRefreshTokens } from "../lib/token.js";
 import { uploadOnCloudinary } from "../lib/cloudinary.js";
 import jwt from "jsonwebtoken";
 
+
+// ADMIN CRUD OPERATIONS
 const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 

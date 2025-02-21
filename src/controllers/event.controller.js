@@ -187,6 +187,31 @@ const resendEventOTP = asyncHandler(async (req, res) => {
     );
 });
 
+const getEvent = asyncHandler(async (req, res) => {
+  const event = await Event.findOne({ slug: req.params.slug }).lean();
+  
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, event, "Event fetched successfully"));
+});
+
+// ADMIN OPERATIONS
+const getAdminEvents = asyncHandler(async (req, res) => {
+  const events = await Event.find({ owner: req.admin._id }).lean().exec();
+
+  if (!events.length) {
+    throw new ApiError(404, "No events found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, events, "Events fetched successfully"));
+});
+
 const createEvent = asyncHandler(async (req, res) => {
   const {
     heading,
@@ -301,18 +326,6 @@ const deleteEvent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Event deleted successfully"));
 });
 
-const getEvent = asyncHandler(async (req, res) => {
-  const event = await Event.findById(req.params.id).lean();
-
-  if (!event) {
-    throw new ApiError(404, "Event not found");
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, event, "Event fetched successfully"));
-});
-
 export {
   createEvent,
   updateEvent,
@@ -322,4 +335,5 @@ export {
   initiateEventRegistration,
   verifyEventRegistration,
   resendEventOTP,
+  getAdminEvents
 };
